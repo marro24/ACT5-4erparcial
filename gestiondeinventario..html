@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Gestión de Inventario</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    
+<body>
+
+    <div class="container">
+        <h1>Gestor de Inventario</h1>
+        
+        <h2>Agregar productos al Inventario</h2>
+        <input type="text" id="nombre" placeholder="Nombre del producto">
+        <input type="number" id="precio" placeholder="Precio">
+        <input type="number" id="cantidad" placeholder="Cantidad">
+        <button class="add-btn" onclick="agregarOEditarProducto()">Guardar Producto</button>
+        <input type="hidden" id="editIndex" value="-1">
+
+        <h2>Inventario Disponible</h2>
+        <div id="productosLista"></div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:3000/productos";
+        let productos = [];
+
+        // 📌 Cargar productos desde el servidor
+        async function cargarProductos() {
+            try {
+                const response = await fetch(API_URL);
+                productos = await response.json();
+                actualizarLista();
+            } catch (error) {
+                console.error("Error al cargar productos:", error);
+            }
+        }
+
+        // 📌 Guardar productos en el servidor
+        async function guardarProductos() {
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(productos)
+                });
+            } catch (error) {
+                console.error("Error al guardar productos:", error);
+            }
+        }
+
+        function agregarOEditarProducto() {
+            const nombre = document.getElementById("nombre").value;
+            const precio = parseFloat(document.getElementById("precio").value);
+            const cantidad = parseInt(document.getElementById("cantidad").value);
+            const editIndex = document.getElementById("editIndex").value;
+
+            if (nombre && !isNaN(precio) && !isNaN(cantidad)) {
+                if (editIndex === "-1") {
+                    // Agregar nuevo producto
+                    productos.push({ nombre, precio, cantidad });
+                } else {
+                    // Editar producto existente
+                    productos[editIndex] = { nombre, precio, cantidad };
+                    document.getElementById("editIndex").value = "-1";
+                }
+                guardarProductos();
+                actualizarLista();
+                limpiarFormulario();
+            } else {
+                alert("Por favor, ingresa valores válidos.");
+            }
+        }
+
+        function actualizarLista() {
+            const lista = document.getElementById("productosLista");
+            lista.innerHTML = "";
+            productos.forEach((producto, index) => {
+                lista.innerHTML += `
+                    <div class="product-item">
+                        <div class="product-details">
+                            <p><strong>${producto.nombre}</strong></p>
+                            <p>Precio: $${producto.precio}</p>
+                            <p>Cantidad: ${producto.cantidad}</p>
+                        </div>
+                        <div>
+                            <button class="edit-btn" onclick="editarProducto(${index})">Editar</button>
+                            <button class="delete-btn" onclick="eliminarProducto(${index})">Eliminar</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function editarProducto(index) {
+            const producto = productos[index];
+            document.getElementById("nombre").value = producto.nombre;
+            document.getElementById("precio").value = producto.precio;
+            document.getElementById("cantidad").value = producto.cantidad;
+            document.getElementById("editIndex").value = index;
+        }
+
+        function eliminarProducto(index) {
+            productos.splice(index, 1);
+            guardarProductos();
+            actualizarLista();
+        }
+
+        function limpiarFormulario() {
+            document.getElementById("nombre").value = "";
+            document.getElementById("precio").value = "";
+            document.getElementById("cantidad").value = "";
+        }
+
+        // 📌 Cargar productos al iniciar
+        cargarProductos();
+    </script>
+
+</body>
+</html>
